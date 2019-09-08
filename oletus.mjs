@@ -1,7 +1,12 @@
 import assert from 'assert'
 
+const originalPrepareStackTrace = Error.prepareStackTrace
+
+function customPrepareStackTrace(e, stack){
+  return stack
+}
+
 export default async function test (title, implementation) {
-  Error.prepareStackTrace = (e, stack) => stack
 
   let location = ''
   let lines = []
@@ -10,7 +15,10 @@ export default async function test (title, implementation) {
   try {
     await implementation(assert.strict)
   } catch (e) {
-    location = `${/[^/]*$/.exec(e.stack[0].getFileName())[0]}:${e.stack[0].getLineNumber()}`
+    Error.prepareStackTrace = customPrepareStackTrace
+    const stack = e.stack;
+    location = `${/[^/]*$/.exec(stack[0].getFileName())[0]}:${stack[0].getLineNumber()}`
+    Error.prepareStackTrace = originalPrepareStackTrace
     lines = e.toString().split('\n')
 
     if (lines[0].startsWith('AssertionError [ERR_ASSERTION]: Input A expected to ')) lines.splice(0, 3)
